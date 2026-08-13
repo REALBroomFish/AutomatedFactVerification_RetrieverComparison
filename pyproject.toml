@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "factverify"
+version = "0.1.0"
+description = "Evidence retrieval experiments for automated fact verification"
+requires-python = ">=3.10"
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "nltk",
+    "rank-bm25",
+    "torch",
+    "transformers",
+    "sentence-transformers",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

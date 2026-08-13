@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: factverify
+Version: 0.1.0
+Summary: Evidence retrieval experiments for automated fact verification
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: nltk
+Requires-Dist: rank-bm25
+Requires-Dist: torch
+Requires-Dist: transformers
+Requires-Dist: sentence-transformers

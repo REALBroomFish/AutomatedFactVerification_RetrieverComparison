@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.env
+.local_data
+
+data/raw/
+data/processed/
+outputs/
+indexes/
+checkpoints/
+
+*.bin
+*.pt
+*.pth
+*.faiss
+
+# Local project artefacts
+*.py[cod]
+data/*
+!data/README.md
