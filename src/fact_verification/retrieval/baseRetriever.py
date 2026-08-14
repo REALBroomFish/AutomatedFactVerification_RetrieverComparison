@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import pandas as pd
+from tqdm.auto import tqdm
 
 class BaseRetriever(ABC):
     REQUIRED_CANDIDATE_COLUMNS = {"candidate_id", "source_url", "text"}
@@ -46,24 +47,35 @@ class BaseRetriever(ABC):
 
         ...
 
-    def retrieve_batch(self, claims:pd.DataFrame, candidates:pd.DataFrame, k:int=100) -> pd.DataFrame:
+    def retrieve_batch(self, claims: pd.DataFrame, candidates, k: int = 100) -> pd.DataFrame:
 
         required_claim_columns = {"claim_id", "claim"}
-
         missing = required_claim_columns - set(claims.columns)
 
         if missing:
             raise ValueError(f"claims are missing req. columns: {sorted(missing)}")
 
-        if "claim_id" not in candidates.columns:
-            raise ValueError("Batch retrieval required candidates to contain 'claim_id'")
+        is_lazy_store = hasattr(candidates, "load_claim")
+
+        if not is_lazy_store and "claim_id" not in candidates.columns:
+            raise ValueError("Batch retrieval requires candidates to contain 'claim_id'")
 
         all_results = []
 
-        for claim in claims.itertuples(index=False):
-            claim_candidates = candidates[candidates["claim_id"] == claim.claim_id]
+        for _, claim in tqdm(claims.iterrows(), total=len(claims), desc=self.__class__.__name__, unit="claim"):
+            claim_id = claim["claim_id"]
+            query = claim["claim"]
 
-            results = self.retrieve(query=claim.claim, candidates=claim_candidates, k=k)
+            if is_lazy_store:
+                claim_candidates = candidates.load_claim(claim_id)
+            else:
+                claim_candidates = candidates[candidates["claim_id"] == claim_id].copy()
+
+            claim_candidates = claim_candidates.drop(columns=["claim_id"], errors="ignore")
+            results = self.retrieve(query=query, candidates=claim_candidates, k=k)
+
+            results.insert(0, "claim_id", claim_id)
+            all_results.append(results)
 
         if not all_results:
             return pd.DataFrame()

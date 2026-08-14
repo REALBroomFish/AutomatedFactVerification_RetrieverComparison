@@ -6,6 +6,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from tqdm.auto import tqdm
+
 from fact_verification.retrieval.baseRetriever import BaseRetriever
 
 
@@ -88,6 +90,27 @@ class HybridRetriever(BaseRetriever):
             return self._rrf_fusion(lexical_results, dense_results, k)
 
         return self._weighted_fusion(lexical_results, dense_results, k)
+
+    def fuse_batch(self, lexical_results: pd.DataFrame, dense_results: pd.DataFrame, k: int) -> pd.DataFrame:
+        lexical_claims = set(lexical_results["claim_id"].unique())
+        dense_claims = set(dense_results["claim_id"].unique())
+        claim_ids = sorted(lexical_claims & dense_claims)
+
+        all_results = []
+
+        for claim_id in tqdm(claim_ids, desc="HybridRetriever", unit="claim"):
+            lexical_claim = lexical_results[lexical_results["claim_id"] == claim_id].drop(columns="claim_id")
+            dense_claim = dense_results[dense_results["claim_id"] == claim_id].drop(columns="claim_id")
+
+            fused = self.fuse(lexical_results=lexical_claim, dense_results=dense_claim, k=k)
+            fused.insert(0, "claim_id", claim_id)
+
+            all_results.append(fused)
+
+        if not all_results:
+            return pd.DataFrame()
+
+        return pd.concat(all_results, ignore_index=True)
 
     def _rrf_fusion(self, lexical_results:pd.DataFrame, dense_results:pd.DataFrame, k:int) -> pd.DataFrame:
         """

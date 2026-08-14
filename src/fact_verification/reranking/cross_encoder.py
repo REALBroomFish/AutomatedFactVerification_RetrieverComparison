@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
 from sentence_transformers import CrossEncoder
-
 from fact_verification.reranking.base import BaseReranker
 
 
@@ -76,3 +76,32 @@ class CrossEncoderReranker(BaseReranker):
         results["method"] = self.name
 
         return results.reset_index(drop=True)
+
+    def rerank_batch(self, claims: pd.DataFrame, candidates: pd.DataFrame, candidate_k: int | None = None, output_k: int | None = None) -> pd.DataFrame:
+
+        if "claim_id" not in candidates.columns:
+            raise ValueError("Batch reranking requires candidates to contain 'claim_id'.")
+
+        all_results = []
+
+        for claim in tqdm(claims.iterrows(), total=len(claims), desc="CrossEncoderReranker", unit="claim"):
+            claim_candidates = candidates[candidates["claim_id"] == claim.claim_id].copy()
+
+            if claim_candidates.empty:
+                continue
+
+            claim_candidates = claim_candidates.sort_values("rank")
+
+            if candidate_k is not None:
+                claim_candidates = claim_candidates.head(candidate_k)
+
+            claim_candidates = claim_candidates.drop(columns="claim_id")
+
+            results = self.rerank(query=claim.claim, candidates=claim_candidates, k=output_k)
+            results.insert(0, "claim_id", claim.claim_id)
+            all_results.append(results)
+
+        if not all_results:
+            return pd.DataFrame()
+
+        return pd.concat(all_results, ignore_index=True)

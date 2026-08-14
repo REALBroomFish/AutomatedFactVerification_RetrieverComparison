@@ -1,6 +1,8 @@
 README.md
 pyproject.toml
 src/fact_verification/__init__.py
+src/fact_verification/data.py
+src/fact_verification/evaluation.py
 src/fact_verification/reranking/__init__.py
 src/fact_verification/reranking/base.py
 src/fact_verification/reranking/cross_encoder.py
@@ -10,6 +12,7 @@ src/fact_verification/retrieval/bm25.py
 src/fact_verification/retrieval/dpr.py
 src/fact_verification/retrieval/hybrid.py
 src/fact_verification/tests/dpr_test.py
+src/fact_verification/tests/endtoendtest.py
 src/factverify.egg-info/PKG-INFO
 src/factverify.egg-info/SOURCES.txt
 src/factverify.egg-info/dependency_links.txt
