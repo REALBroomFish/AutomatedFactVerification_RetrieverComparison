@@ -84,7 +84,7 @@ class CrossEncoderReranker(BaseReranker):
 
         all_results = []
 
-        for claim in tqdm(claims.iterrows(), total=len(claims), desc="CrossEncoderReranker", unit="claim"):
+        for _, claim in tqdm(claims.iterrows(), total=len(claims), desc="CrossEncoderReranker", unit="claim"):
             claim_candidates = candidates[candidates["claim_id"] == claim.claim_id].copy()
 
             if claim_candidates.empty:

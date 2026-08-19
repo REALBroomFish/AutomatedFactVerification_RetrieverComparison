@@ -9,6 +9,7 @@ src/fact_verification/reranking/cross_encoder.py
 src/fact_verification/retrieval/__init__.py
 src/fact_verification/retrieval/baseRetriever.py
 src/fact_verification/retrieval/bm25.py
+src/fact_verification/retrieval/dense.py
 src/fact_verification/retrieval/dpr.py
 src/fact_verification/retrieval/hybrid.py
 src/fact_verification/tests/dpr_test.py
