@@ -1,0 +1,16 @@
+{
+  "runtime_seconds": 21347.1186202,
+  "summary": {
+    "claims": 500,
+    "results": 50000,
+    "runtime_seconds": 21347.1186202,
+    "mean_cpu_pct": 4.1426522885620285,
+    "peak_cpu_pct": 4.325,
+    "mean_ram_gb": 2.6837543790613125,
+    "peak_ram_gb": 5.261989593505859,
+    "mean_gpu_pct": 0.0,
+    "peak_gpu_pct": 0.0,
+    "mean_gpu_gb": 0.0,
+    "peak_gpu_gb": 0.0
+  }
+}
