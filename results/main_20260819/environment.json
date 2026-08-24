@@ -1,0 +1,12 @@
+{
+  "timestamp_utc": "2026-08-23T20:30:33.274220+00:00",
+  "python_version": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "torch_version": "2.13.0+cu132",
+  "cuda_available": true,
+  "cuda_version": "13.2",
+  "gpu": "NVIDIA GeForce RTX 3060",
+  "git_commit": "7f08122d575dbe07e3d82516b0713e21043a3200",
+  "transformers_version": "5.15.0",
+  "sentence_transformers_version": "5.7.0",
+  "nltk_version": "3.10.2"
+}
