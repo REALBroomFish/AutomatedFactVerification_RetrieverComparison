@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "factverify"
 version = "0.1.0"
 description = "Evidence retrieval experiments for automated fact verification"
+readme = "README.md"
 requires-python = ">=3.10"
 
 dependencies = [
@@ -16,6 +17,20 @@ dependencies = [
     "torch",
     "transformers",
     "sentence-transformers",
+]
+
+[project.optional-dependencies]
+notebooks = [
+    "matplotlib",
+    "psutil",
+    "nvidia-ml-py",
+    "huggingface-hub",
+    "hf-xet",
+    "python-dotenv",
+    "jupyter",
+    "ipykernel",
+    "ipywidgets",
+    "tqdm",
 ]
 
 [tool.setuptools.packages.find]
