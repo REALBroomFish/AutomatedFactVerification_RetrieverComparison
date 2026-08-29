@@ -3,6 +3,7 @@ Name: factverify
 Version: 0.1.0
 Summary: Evidence retrieval experiments for automated fact verification
 Requires-Python: >=3.10
+Description-Content-Type: text/markdown
 Requires-Dist: numpy
 Requires-Dist: pandas
 Requires-Dist: nltk
@@ -10,3 +11,701 @@ Requires-Dist: rank-bm25
 Requires-Dist: torch
 Requires-Dist: transformers
 Requires-Dist: sentence-transformers
+Provides-Extra: notebooks
+Requires-Dist: matplotlib; extra == "notebooks"
+Requires-Dist: psutil; extra == "notebooks"
+Requires-Dist: nvidia-ml-py; extra == "notebooks"
+Requires-Dist: huggingface-hub; extra == "notebooks"
+Requires-Dist: hf-xet; extra == "notebooks"
+Requires-Dist: python-dotenv; extra == "notebooks"
+Requires-Dist: jupyter; extra == "notebooks"
+Requires-Dist: ipykernel; extra == "notebooks"
+Requires-Dist: ipywidgets; extra == "notebooks"
+Requires-Dist: tqdm; extra == "notebooks"
+
+# Automated Fact Verification: Evidence Retrieval Comparison
+
+This repository contains the implementation and experimental workflow for an MSc dissertation investigating **evidence retrieval for automated fact verification**.
+
+The project evaluates lexical, dense, hybrid, and cross-encoder-reranked retrieval using the **AVeriTeC** dataset. It additionally investigates how cross-encoder performance changes with different first-stage retrievers and reranking depths, and how the computational cost of retrieval changes when reusable representations are prepared in advance.
+
+The repository focuses specifically on the **evidence retrieval** stage of automated fact verification rather than implementing a complete fact-checking pipeline.
+
+---
+
+## 1. Project Overview
+
+Automated fact verification systems commonly contain three broad stages:
+
+1. claim detection;
+2. evidence retrieval;
+3. veracity prediction.
+
+This project focuses on the second stage: finding evidence that is relevant to a claim.
+
+The primary experiment compares four retrieval configurations:
+
+- **BM25** lexical retrieval;
+- **dense bi-encoder retrieval**;
+- **hybrid retrieval** using Reciprocal Rank Fusion;
+- **cross-encoder reranking** of the hybrid results.
+
+Two secondary experiments are also included:
+
+- a **cross-encoder reranking ablation**;
+- a **prepared-system deployment benchmark**.
+
+The experiments evaluate both retrieval effectiveness and computational requirements.
+
+---
+
+## 2. Primary Retrieval Configurations
+
+### 2.1 BM25
+
+Lexical retrieval is performed using BM25.
+
+The primary configuration uses:
+
+- `k1 = 1.5`
+- `b = 0.75`
+- `epsilon = 0.25`
+- no additional lowercasing
+- top 100 candidates retained
+
+---
+
+### 2.2 Dense Retrieval
+
+Dense retrieval uses:
+
+`sentence-transformers/multi-qa-MiniLM-L6-cos-v1`
+
+Claims and candidate sentences are encoded independently and compared using normalised dense representations.
+
+The primary configuration uses:
+
+- batch size = 64
+- top 100 candidates retained
+- CUDA when available, otherwise CPU
+
+---
+
+### 2.3 Hybrid Retrieval
+
+Hybrid retrieval combines the BM25 and dense rankings using **Reciprocal Rank Fusion (RRF)**.
+
+The primary configuration uses:
+
+- BM25 depth = 100
+- dense depth = 100
+- fusion depth = 100
+- RRF constant = 60
+- final depth = 100
+
+Because RRF operates on ranking positions, the differently scaled BM25 and dense relevance scores do not need to be directly normalised.
+
+---
+
+### 2.4 Cross-Encoder Reranking
+
+The primary reranking model is:
+
+`cross-encoder/ms-marco-MiniLM-L6-v2`
+
+The cross-encoder receives the top 100 hybrid candidates and reranks them using joint claim-candidate scoring.
+
+The primary configuration uses:
+
+- candidate depth = 100
+- output depth = 20
+- batch size = 32
+- CUDA when available, otherwise CPU
+
+---
+
+## 3. Dataset
+
+The experiments use the **AVeriTeC development split**.
+
+The exact upstream dataset revision used by the project is:
+
+```text
+2ca9dee23a2a6fa64c5bd918e0cd28ed0aa09031
+```
+
+The source repository is:
+
+```text
+chenxwh/AVeriTeC
+```
+
+AVeriTeC provides a separate knowledge store for each claim.
+
+The experiments therefore retrieve evidence from **claim-specific candidate collections**, rather than from one shared global corpus.
+
+---
+
+## 4. Retrieval Unit
+
+The final experiments use **individual sentences** as retrieval candidates.
+
+Each candidate retains information including:
+
+- claim identifier;
+- candidate identifier;
+- source URL;
+- sentence text;
+- sentence-position metadata.
+
+All retrieval approaches operate over the same sentence-level representation.
+
+This keeps the underlying evidence candidates fixed when comparing retrieval architectures.
+
+---
+
+## 5. Evaluation
+
+Retrieval is evaluated at **source level** using the URLs associated with the annotated AVeriTeC evidence.
+
+The principal effectiveness metrics are:
+
+- Recall@k;
+- Hit@k;
+- Complete@k;
+- Mean Reciprocal Rank (MRR).
+
+BM25, dense, and hybrid retrieval are evaluated to a maximum depth of 100.
+
+Cross-encoder outputs are evaluated to a maximum depth of 20.
+
+Per-claim evaluation is also retained for later comparative and error analysis.
+
+---
+
+## 6. Secondary Experiments
+
+### 6.1 Cross-Encoder Reranking Ablation
+
+The reranking ablation investigates two factors:
+
+1. the first-stage candidate generator;
+2. the number of candidates supplied to the cross-encoder.
+
+Three candidate generators are compared:
+
+- BM25;
+- dense retrieval;
+- hybrid retrieval.
+
+Each is evaluated at candidate depths of:
+
+- 20;
+- 50;
+- 100.
+
+This produces the following nine configurations:
+
+```text
+BM25 -> CE@20
+BM25 -> CE@50
+BM25 -> CE@100
+
+Dense -> CE@20
+Dense -> CE@50
+Dense -> CE@100
+
+Hybrid -> CE@20
+Hybrid -> CE@50
+Hybrid -> CE@100
+```
+
+Every reranked configuration retains a final top-20 ranking.
+
+The `Hybrid -> CE@100` configuration is identical to the primary cross-encoder experiment and is therefore reused rather than recomputed.
+
+---
+
+### 6.2 Prepared-System Deployment Benchmark
+
+The deployment benchmark separates computational work that can be performed before a query from work that must occur when the system is queried.
+
+It measures:
+
+- raw candidate-store loading;
+- preparation of reusable BM25 indices;
+- preparation of dense candidate embeddings;
+- serialisation;
+- prepared representation loading;
+- dense CPU-to-GPU transfer;
+- online query latency;
+- CPU utilisation;
+- RAM usage;
+- GPU utilisation;
+- GPU memory usage.
+
+The benchmark includes:
+
+- BM25;
+- dense;
+- hybrid;
+- BM25 -> cross-encoder;
+- dense -> cross-encoder;
+- hybrid -> cross-encoder.
+
+Cross-encoder configurations are measured at candidate depths of 20, 50, and 100.
+
+Warm-up queries are excluded from reported online latency measurements.
+
+The deployment experiment uses a fixed seeded sample of AVeriTeC claim-specific knowledge stores.
+
+Because AVeriTeC provides a separate knowledge store for each claim, this experiment should not be interpreted as benchmarking one global production retrieval index. Instead, it measures the distinction between representation preparation and subsequent query processing within the supplied claim-specific stores.
+
+---
+
+## 7. Repository Structure
+
+```text
+.
+├── notebooks/
+│   ├── 0_repository_and_data_setup.ipynb
+│   ├── 1_data_walkthrough.ipynb
+│   └── 2_retrieval_evaluation.ipynb
+│
+├── src/
+│   └── fact_verification/
+│       ├── data.py
+│       ├── evaluation.py
+│       ├── retrieval/
+│       │   ├── baseRetriever.py
+│       │   ├── bm25.py
+│       │   ├── dense.py
+│       │   ├── dpr.py    <- DPR implemented, not used in experiment
+│       │   └── hybrid.py
+│       └── reranking/
+│           ├── base.py
+│           └── cross_encoder.py
+│
+├── results/
+├── requirements.txt
+├── DESIGN.md
+├── ENVIRONMENT.md
+├── pyproject.toml
+└── README.md
+```
+
+Local dataset files are stored under `.local_data/` and are not intended to be committed to Git.
+
+---
+
+## 8. Installation
+
+### 8.1 Clone the Repository
+
+```bash
+git clone https://github.com/REALBroomFish/AutomatedFactVerification_RetrieverComparison.git
+cd AutomatedFactVerification_RetrieverComparison
+```
+
+---
+
+### 8.2 Create a Virtual Environment
+
+On Windows:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+On Linux or macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Upgrade `pip`:
+
+```bash
+python -m pip install --upgrade pip
+```
+
+---
+
+### 8.3 Install Dependencies
+
+Install the Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+This makes the package under `src/fact_verification/` available to the notebooks.
+
+---
+
+## 9. Dataset Setup
+
+Run:
+
+```text
+notebooks/0_repository_and_data_setup.ipynb
+```
+
+This notebook provides the reproducible setup process for the AVeriTeC data.
+
+It:
+
+1. locates or clones the repository;
+2. prepares the local project structure;
+3. installs setup dependencies;
+4. verifies the pinned AVeriTeC revision;
+5. downloads the train and development annotations;
+6. optionally downloads and extracts the development knowledge store;
+7. records the local dataset configuration.
+
+The full development knowledge store is large:
+
+- approximately **10.75 GiB compressed**;
+- approximately **34 GiB after extraction**.
+
+The notebook therefore leaves the large download and extraction steps explicitly configurable.
+
+---
+
+## 10. Local Configuration
+
+Dataset paths are stored locally rather than hard-coded into the repository.
+
+The setup notebook creates or updates:
+
+```text
+.env
+```
+
+with values equivalent to:
+
+```text
+AVERITEC_ROOT=<path to the local pinned AVeriTeC data>
+AVERITEC_REVISION=2ca9dee23a2a6fa64c5bd918e0cd28ed0aa09031
+```
+
+The experiment notebooks load this configuration when resolving the local dataset.
+
+The `.env` file is local machine configuration and should not be committed to Git.
+
+---
+
+## 11. Notebook Workflow
+
+The three notebooks have separate responsibilities.
+
+### 11.1 `0_repository_and_data_setup.ipynb`
+
+Use this notebook for **initial repository and dataset setup**.
+
+It is intended for:
+
+- preparing a new machine;
+- downloading the pinned dataset;
+- creating the local data configuration;
+- checking whether the required knowledge store is available.
+
+It is not part of the retrieval experiment itself.
+
+---
+
+### 11.2 `1_data_walkthrough.ipynb`
+
+Use this notebook to inspect and understand the experimental inputs.
+
+It examines:
+
+- AVeriTeC development claims;
+- annotated evidence;
+- claim-specific knowledge stores;
+- sentence-level candidate collections;
+- source URL coverage.
+
+This notebook is explanatory and is not required every time the main experiment is run.
+
+---
+
+### 11.3 `2_retrieval_evaluation.ipynb`
+
+This notebook contains the complete experimental workflow.
+
+It performs:
+
+1. experiment setup and reproducibility configuration;
+2. primary retrieval experiments;
+3. reranking ablations;
+4. prepared-system deployment benchmarking;
+5. comparative evaluation;
+6. per-claim evaluation;
+7. computational evaluation;
+8. output persistence;
+9. final integrity validation.
+
+Long-running stages use saved state or checkpointing where appropriate so that completed work does not need to be unnecessarily repeated after an interruption.
+
+---
+
+## 12. Primary Experimental Configuration
+
+The principal settings are summarised below.
+
+| Component                   | Configuration                                     |
+| --------------------------- | ------------------------------------------------- |
+| Dataset                     | AVeriTeC development split                        |
+| Number of claims            | 500                                               |
+| Retrieval unit              | Sentence                                          |
+| Random seed                 | 67                                                |
+| BM25 `k1`                   | 1.5                                               |
+| BM25 `b`                    | 0.75                                              |
+| BM25 `epsilon`              | 0.25                                              |
+| BM25 additional lowercasing | No                                                |
+| Dense model                 | `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` |
+| Dense batch size            | 64                                                |
+| First-stage retrieval depth | 100                                               |
+| Hybrid method               | Reciprocal Rank Fusion                            |
+| RRF constant                | 60                                                |
+| Cross-encoder               | `cross-encoder/ms-marco-MiniLM-L6-v2`             |
+| Cross-encoder batch size    | 32                                                |
+| Primary reranking depth     | 100                                               |
+| Reranked output depth       | 20                                                |
+
+---
+
+## 13. Running the Experiments
+
+After completing the dataset setup, open:
+
+```text
+notebooks/2_retrieval_evaluation.ipynb
+```
+
+and execute the notebook in order.
+
+The notebook automatically loads completed stages where saved state is available.
+
+The main retrieval outputs are stored under:
+
+```text
+results/<run_id>/
+```
+
+The retrieval notebook contains validation checks after important experimental stages.
+
+If a validation assertion fails, the corresponding experimental output should be investigated rather than bypassing the assertion.
+
+---
+
+## 14. Experimental Outputs
+
+The primary run directory contains the main retrieval rankings and evaluation records.
+
+A typical structure is:
+
+```text
+results/<run_id>/
+├── bm25_results.pkl
+├── dense_results.pkl
+├── hybrid_results.pkl
+├── cross_encoder_results.pkl
+├── evaluation_summary.csv
+├── resource_summary.csv
+├── experiment_config.json
+├── environment.json
+├── ablations/
+└── deployment_benchmark/
+```
+
+Additional checkpoint and state files may also be present.
+
+---
+
+### 14.1 Primary Experiment Outputs
+
+Primary outputs include:
+
+- BM25 rankings;
+- dense rankings;
+- hybrid rankings;
+- cross-encoder rankings;
+- aggregate effectiveness metrics;
+- per-claim metrics;
+- runtime measurements;
+- resource measurements;
+- experiment configuration;
+- execution environment information.
+
+---
+
+### 14.2 Ablation Outputs
+
+The `ablations/` directory contains data including:
+
+- ablation configuration;
+- reranked outputs;
+- runtime measurements;
+- resource measurements;
+- aggregate evaluation;
+- per-claim evaluation;
+- secondary experiment environment metadata.
+
+---
+
+### 14.3 Deployment Benchmark Outputs
+
+The `deployment_benchmark/` directory contains data including:
+
+- benchmark configuration;
+- selected benchmark claim identifiers;
+- prepared BM25 indices;
+- prepared dense representations;
+- preparation measurements;
+- prepared-representation loading measurements;
+- online query measurements;
+- online resource measurements;
+- retrieval validation results;
+- summary tables;
+- secondary experiment environment metadata.
+
+---
+
+## 15. Checkpointing and Recovery
+
+Some parts of the experiment are computationally expensive.
+
+The implementation therefore preserves state during or after long-running stages.
+
+Examples include:
+
+- claim-level checkpointing during dense retrieval;
+- saved cross-encoder ablation results;
+- persisted prepared representations;
+- claim-level deployment benchmark state;
+- saved query and resource measurements.
+
+Where completed state is available, rerunning the notebook should load or skip completed work rather than repeating the complete experiment.
+
+---
+
+## 16. Validation
+
+The retrieval notebook contains several levels of validation.
+
+### Primary Retrieval Validation
+
+Ranked outputs are checked for:
+
+- complete claim coverage;
+- expected ranking depth;
+- valid rank values.
+
+### Prepared Retrieval Validation
+
+Prepared BM25 and dense retrieval must reproduce the corresponding primary rankings.
+
+### Deployment Pipeline Validation
+
+Prepared deployment pipelines must reproduce their corresponding primary or reranking-ablation rankings.
+
+### Final Validation
+
+The final notebook section verifies the completeness of:
+
+- the primary experiment;
+- the reranking ablation matrix;
+- prepared representations;
+- online deployment measurements;
+- resource measurements;
+- validation tables;
+- saved experimental artefacts.
+
+The experiment should only be considered complete after the final validation succeeds.
+
+---
+
+## 17. Reproducibility
+
+The repository records several forms of reproducibility information.
+
+These include:
+
+- fixed random seed;
+- pinned AVeriTeC dataset revision;
+- centralised experiment configuration;
+- Git commit information;
+- Python version;
+- PyTorch version;
+- CUDA version;
+- GPU model;
+- Transformers version;
+- Sentence Transformers version;
+- NLTK version;
+- run-specific environment files.
+
+Exact computational performance is hardware-dependent.
+
+Resource and runtime measurements are therefore most appropriate for comparisons between configurations executed under the same experimental environment.
+
+See [`ENVIRONMENT.md`](ENVIRONMENT.md) for additional environment information.
+
+---
+
+## 18. Documentation
+
+Additional project documentation is available in:
+
+### [`DESIGN.md`](DESIGN.md)
+
+Describes:
+
+- experimental architecture;
+- software organisation;
+- retrieval pipeline;
+- reranking ablation;
+- deployment benchmark;
+- checkpointing;
+- validation strategy.
+
+### [`ENVIRONMENT.md`](ENVIRONMENT.md)
+
+Describes:
+
+- software environment;
+- hardware information;
+- dataset configuration;
+- dependency and CUDA considerations;
+- reproducibility caveats.
+
+---
+
+## 19. Project Scope
+
+This repository is intended to investigate the **evidence retrieval** component of automated fact verification.
+
+It does not implement:
+
+- claim detection;
+- final evidence-based veracity prediction;
+- a complete end-user fact-checking system;
+- model quantisation;
+- model compression;
+- a global production vector database;
+- iterative multi-hop retrieval.
+
+These areas are outside the scope of the current experimental work.
+
+---
+
+## 20. Dataset Availability
+
+AVeriTeC is not redistributed through this repository.
+
+The setup notebook downloads the required files from the pinned upstream dataset revision.
+
+Users should refer to the original AVeriTeC project for dataset licensing and attribution requirements.
