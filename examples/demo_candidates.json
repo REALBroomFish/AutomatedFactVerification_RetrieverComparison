@@ -1,0 +1,65 @@
+{
+  "claim": "The Eiffel Tower was completed in 1889 and is located in Paris.",
+  "candidates": [
+    {
+      "candidate_id": "demo-01",
+      "source_url": "https://example.org/eiffel-history",
+      "text": "The Eiffel Tower was completed in 1889 in Paris, France."
+    },
+    {
+      "candidate_id": "demo-02",
+      "source_url": "https://example.org/paris-landmarks",
+      "text": "The famous iron tower built for the 1889 World's Fair stands in the French capital."
+    },
+    {
+      "candidate_id": "demo-03",
+      "source_url": "https://example.org/eiffel-construction",
+      "text": "Construction of the Eiffel Tower began in 1887 and the structure was finished in 1889."
+    },
+    {
+      "candidate_id": "demo-04",
+      "source_url": "https://example.org/paris",
+      "text": "Paris is the capital and largest city of France."
+    },
+    {
+      "candidate_id": "demo-05",
+      "source_url": "https://example.org/world-fair",
+      "text": "The 1889 Exposition Universelle was held in Paris."
+    },
+    {
+      "candidate_id": "demo-06",
+      "source_url": "https://example.org/gustave-eiffel",
+      "text": "Gustave Eiffel was a French civil engineer known for the tower that bears his name."
+    },
+    {
+      "candidate_id": "demo-07",
+      "source_url": "https://example.org/statue-of-liberty",
+      "text": "The Statue of Liberty was dedicated in New York in 1886."
+    },
+    {
+      "candidate_id": "demo-08",
+      "source_url": "https://example.org/big-ben",
+      "text": "Big Ben is a famous landmark in London."
+    },
+    {
+      "candidate_id": "demo-09",
+      "source_url": "https://example.org/empire-state",
+      "text": "The Empire State Building was completed in New York in 1931."
+    },
+    {
+      "candidate_id": "demo-10",
+      "source_url": "https://example.org/france-history",
+      "text": "France hosted several major international exhibitions during the nineteenth century."
+    },
+    {
+      "candidate_id": "demo-11",
+      "source_url": "https://example.org/iron-architecture",
+      "text": "Large iron structures became prominent examples of nineteenth-century engineering."
+    },
+    {
+      "candidate_id": "demo-12",
+      "source_url": "https://example.org/rome",
+      "text": "The Colosseum is an ancient amphitheatre located in Rome, Italy."
+    }
+  ]
+}
