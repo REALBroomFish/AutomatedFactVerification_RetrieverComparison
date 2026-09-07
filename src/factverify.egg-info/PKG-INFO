@@ -33,6 +33,79 @@ The repository focuses specifically on the **evidence retrieval** stage of autom
 
 ---
 
+## Quick Start
+
+The lightweight demonstration runs all four retrieval stages over a small
+illustrative candidate collection included in the repository. It does not
+require the AVeriTeC dataset or any completed experimental outputs.
+
+Python 3.10 or later is required. From a fresh clone, create an environment,
+install the runtime package and execute the demo.
+
+On Windows:
+
+```powershell
+py -m venv .venv
+.venv\Scripts\activate
+python -m pip install -e .
+python demo.py
+```
+
+On Linux or macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python demo.py
+```
+
+The script prints the rankings produced by BM25, dense bi-encoder retrieval,
+RRF hybrid retrieval and cross-encoder reranking. It calls the same retrieval
+classes used by the experimental notebook, but uses only 12 example candidates
+so that the software can be inspected without downloading the approximately
+34 GiB extracted AVeriTeC knowledge store.
+
+### Model download and caching
+
+The demo performs inference only: it does not train or fine-tune either neural
+model. On its first execution, SentenceTransformers downloads the following
+public pretrained model snapshots from Hugging Face:
+
+- `sentence-transformers/multi-qa-MiniLM-L6-cos-v1`, revision
+  `b207367332321f8e44f96e224ef15bc607f4dbf0`;
+- `cross-encoder/ms-marco-MiniLM-L6-v2`, revision
+  `233902d25c440f23af6f7d6e94d2946bac0bee0a`.
+
+The downloaded files are stored in the normal Hugging Face cache and reused by
+later executions. An internet connection is therefore required for the first
+run unless these exact snapshots are already cached. The snapshots can be
+downloaded without running retrieval by executing:
+
+```bash
+python demo.py --download-models
+```
+
+The default device is CUDA when available and CPU otherwise. CPU execution can
+be requested explicitly:
+
+```bash
+python demo.py --device cpu
+```
+
+The bundled example can be replaced with another JSON file containing a
+`claim` and a `candidates` list. Each candidate must contain `candidate_id`,
+`source_url` and `text` fields:
+
+```bash
+python demo.py --candidates path/to/candidates.json
+```
+
+The complete dissertation experiments require the separate dataset setup and
+notebook workflow described below.
+
+---
+
 ## 1. Project Overview
 
 Automated fact verification systems commonly contain three broad stages:
@@ -267,6 +340,9 @@ Because AVeriTeC provides a separate knowledge store for each claim, this experi
 
 ```text
 .
+├── demo.py
+├── examples/
+│   └── demo_candidates.json
 ├── notebooks/
 │   ├── 0_repository_and_data_setup.ipynb
 │   ├── 1_data_walkthrough.ipynb
@@ -286,7 +362,6 @@ Because AVeriTeC provides a separate knowledge store for each claim, this experi
 │           ├── base.py
 │           └── cross_encoder.py
 │
-├── results/
 ├── requirements.txt
 ├── DESIGN.md
 ├── ENVIRONMENT.md
@@ -335,13 +410,23 @@ python -m pip install --upgrade pip
 
 ### 8.3 Install Dependencies
 
-Install the Python dependencies:
+For the lightweight demonstration, install only the package and its runtime
+dependencies:
+
+```bash
+pip install -e .
+```
+
+For the full notebook and experimental environment, install the additional
+notebook dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-This makes the package under `src/fact_verification/` available to the notebooks.
+Both commands install the package under `src/fact_verification/`. The
+requirements file additionally installs the optional notebook, monitoring and
+visualisation dependencies declared in `pyproject.toml`.
 
 ---
 
@@ -705,6 +790,10 @@ These areas are outside the scope of the current experimental work.
 ## 20. Dataset Availability
 
 AVeriTeC is not redistributed through this repository.
+
+The lightweight `demo.py` workflow does not require AVeriTeC. It uses the
+illustrative candidate collection under `examples/` solely to demonstrate the
+implemented retrieval stages.
 
 The setup notebook downloads the required files from the pinned upstream dataset revision.
 

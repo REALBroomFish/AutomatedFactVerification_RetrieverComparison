@@ -17,6 +17,7 @@ dependencies = [
     "torch",
     "transformers",
     "sentence-transformers",
+    "huggingface-hub",
 ]
 
 [project.optional-dependencies]
@@ -24,7 +25,6 @@ notebooks = [
     "matplotlib",
     "psutil",
     "nvidia-ml-py",
-    "huggingface-hub",
     "hf-xet",
     "python-dotenv",
     "jupyter",

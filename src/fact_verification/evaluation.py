@@ -139,7 +139,7 @@ def _validate_inputs(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Itera
     return cutoffs
 
 
-def evaluate_retrieval_per_claim(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Iterable[int]) -> pd.DataFrame:
+def evaluate_retrieval_per_claim(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Iterable[int], mrr_cutoff: int = 20) -> pd.DataFrame:    
     """
     calculate source-level retrieval metrics for each claim
 
@@ -159,7 +159,8 @@ def evaluate_retrieval_per_claim(claims: pd.DataFrame, results: pd.DataFrame, cu
 
     ReciprocalRank:
         reciprocal rank of the first retrieved candidate whose
-        source matches an annotated gold evidence source
+        source matches an annotated gold evidence source within
+        the first mrr_cutoff results; 0 if no match occurs
 
     claims without any annotated source URL are marked as
     non-evaluable and are excluded from aggregate retrieval
@@ -204,7 +205,9 @@ def evaluate_retrieval_per_claim(claims: pd.DataFrame, results: pd.DataFrame, cu
 
         # reciprocal rank
         reciprocal_rank = 0.0
-        for _, result in claim_results.iterrows():
+        mrr_results = claim_results[claim_results["rank"] <= mrr_cutoff]
+
+        for _, result in mrr_results.iterrows():
             if result["_normalised_url"] in gold_urls:
                 reciprocal_rank = 1.0 / result["rank"]
                 break
@@ -215,16 +218,12 @@ def evaluate_retrieval_per_claim(claims: pd.DataFrame, results: pd.DataFrame, cu
     return pd.DataFrame(records)
 
 
-def evaluate_retrieval(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Iterable[int]) -> dict[str, float]:
-    """
-    calculate aggregate source-level retrieval metrics
+def evaluate_retrieval(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Iterable[int], mrr_cutoff: int = 20) -> dict[str, float]:
 
-    returns a flat dictionary suitable for direct use in the
-    experiment comparison table
-    """
+    per_claim = evaluate_retrieval_per_claim(claims=claims, results=results, cutoffs=cutoffs, mrr_cutoff=mrr_cutoff)
 
-    per_claim = evaluate_retrieval_per_claim(claims=claims, results=results, cutoffs=cutoffs)
     evaluable = per_claim[per_claim["evaluable"]]
+
     metrics: dict[str, float] = {"NumClaims": float(len(per_claim)), "NumEvaluableClaims": float(len(evaluable))}
 
     if evaluable.empty:
@@ -235,6 +234,5 @@ def evaluate_retrieval(claims: pd.DataFrame, results: pd.DataFrame, cutoffs: Ite
         metrics[f"Hit@{k}"] = float(evaluable[f"Hit@{k}"].mean())
         metrics[f"Complete@{k}"] = float(evaluable[f"Complete@{k}"].mean())
 
-    metrics["MRR"] = float(evaluable["ReciprocalRank"].mean())
-
+    metrics[f"MRR@{mrr_cutoff}"] = float(evaluable["ReciprocalRank"].mean())
     return metrics
