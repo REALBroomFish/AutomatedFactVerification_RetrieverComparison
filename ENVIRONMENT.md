@@ -18,10 +18,14 @@ The primary experiment recorded the following software and hardware configuratio
 | Transformers | 5.15.0 |
 | Sentence Transformers | 5.7.0 |
 | NLTK | 3.10.2 |
+| rank-bm25 | 0.2.2 |
+| NumPy | 2.5.1 |
+| pandas | 3.0.5 |
+| psutil | 7.2.2 |
+| nvidia-ml-py | 13.610.43 |
 
-The experiments were executed in a Windows development environment.
 
-Computational measurements such as runtime, CPU utilisation, RAM usage, GPU utilisation and GPU memory usage are hardware-dependent. They should therefore be interpreted primarily as comparisons between configurations executed under the same environment.
+The run-specific environment record did not automatically capture the Windows build, CPU model, installed system RAM or storage device. These details were recorded separately from the experimental machine during final reproducibility documentation: Windows 11 (10.0.26200), an Intel Core i9-12900K with 16 physical cores and 24 logical processors, 31.78 GiB of RAM, a 1 TB Crucial P3 Plus NVMe SSD, and an NVIDIA GeForce RTX 3060 with 12.0 GiB of VRAM. Run-specific `environment.json` files remain the authoritative records for fields captured automatically during experimental execution.
 
 ## Creating a Compatible Environment
 
